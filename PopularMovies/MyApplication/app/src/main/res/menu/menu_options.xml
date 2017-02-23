@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:title="Sort By"
+        android:showAsAction="ifRoom">
+        <menu>
+            <item
+                android:id="@+id/menuSortPopularityDesc"
+                android:title="Sort by popularity descending" />
+            <item
+                android:id="@+id/menuSortPopularityAsc"
+                android:title="Sort by popularity ascending" />
+            <item
+                android:id="@+id/menuSortAverageDesc"
+                android:title="Sort by average descending" />
+            <item
+                android:id="@+id/menuSortAverageAsc"
+                android:title="Sort by average ascending" />
+        </menu>
+    </item>
+
+</menu>
