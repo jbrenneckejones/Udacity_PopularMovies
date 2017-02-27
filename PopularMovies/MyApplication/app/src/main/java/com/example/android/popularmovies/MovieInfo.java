@@ -51,10 +51,12 @@ public class MovieInfo implements Parcelable
 
     public String GetMovieInfo()
     {
-        return "Overview: " + mMovieOverview +
-                "\n\n" + "Release Date: " + mMovieReleaseDate + "\n\n" + "Title: " + mMovieTitle +
-                "\n\n" + "Popularity: " + mMoviePopularity + "\n\n" + "Votes: " + mMovieVotes +
-                "\n\n" + "Average: " + mMovieAverage;
+        return "Title: " + mMovieTitle + "\n\n" +
+                "Release Date: " + mMovieReleaseDate + "\n\n" +
+                "Overview: " + mMovieOverview + "\n\n" +
+                "Popularity: " + mMoviePopularity + "\n\n" +
+                "Votes: " + mMovieVotes + "\n\n" +
+                "Average: " + mMovieAverage;
     }
 
     public String ToString()
