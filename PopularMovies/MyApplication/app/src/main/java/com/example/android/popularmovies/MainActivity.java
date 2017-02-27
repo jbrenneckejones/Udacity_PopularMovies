@@ -110,7 +110,7 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
 
     private static String MOVIE_API_QUERY = "api_key";
     // TODO: Change this to your api key
-    private static String MOVIE_API_KEY = "91e6df5b3e17d0b382c6da5a4bff0091";
+    private static String MOVIE_API_KEY = "API_KEY";
 
     private static String MOVIE_LANGUAGE_QUERY = "language";
     private static String MOVIE_DEFAULT_LANGUAGE = "en-US";
