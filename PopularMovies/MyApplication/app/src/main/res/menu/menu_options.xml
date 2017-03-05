@@ -6,17 +6,11 @@
         android:showAsAction="ifRoom">
         <menu>
             <item
-                android:id="@+id/menuSortPopularityDesc"
-                android:title="Sort by popularity descending" />
+                android:id="@+id/menuTopRated"
+                android:title="Top Rated Movies" />
             <item
-                android:id="@+id/menuSortPopularityAsc"
-                android:title="Sort by popularity ascending" />
-            <item
-                android:id="@+id/menuSortAverageDesc"
-                android:title="Sort by average descending" />
-            <item
-                android:id="@+id/menuSortAverageAsc"
-                android:title="Sort by average ascending" />
+                android:id="@+id/menuPopularity"
+                android:title="Most Popular Movies" />
         </menu>
     </item>
 

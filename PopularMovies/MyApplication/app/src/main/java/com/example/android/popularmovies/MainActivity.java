@@ -35,7 +35,7 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
 
     private static int mMaxPages = 0;
     private int mCurrentPage = 1;
-    private String mCurrentSortQuery = MOVIE_SORT_BY_POPULARITY_DESC;
+    private String mCurrentSortQuery = MOVIE_TOP_RATED;
 
     public static final String PARCELABLE_NAME = "MovieInfoData";
 
@@ -105,7 +105,7 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
         new FetchMoviesTask().execute(String.valueOf(mCurrentPage), mCurrentSortQuery, Command.toString());
     }
 
-    private static String MOVIE_BASE_URL = "https://api.themoviedb.org/3/discover/movie";
+    private static String MOVIE_BASE_URL = "https://api.themoviedb.org/3/movie";
 
 
     private static String MOVIE_API_QUERY = "api_key";
@@ -116,6 +116,10 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
     private static String MOVIE_DEFAULT_LANGUAGE = "en-US";
 
     private static String MOVIE_SORT_BY_QUERY = "sort_by";
+
+    private static String MOVIE_TOP_RATED = "/top_rated";
+    private static String MOVIE_POPULAR = "/popular";
+
     private static String MOVIE_SORT_BY_POPULARITY_DESC = "popularity.desc";
     private static String MOVIE_SORT_BY_POPULARITY_ASC = "popularity.asc";
     private static String MOVIE_SORT_BY_VOTE_AVERAGE_DESC = "vote_average.desc";
@@ -130,12 +134,12 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
     private static String MOVIE_PAGE_QUERY = "page";
 
     public static URL buildUrl(int PageNumber, String SortByQuery) {
-        Uri builtUri = Uri.parse(MOVIE_BASE_URL).buildUpon()
+        Uri builtUri = Uri.parse(MOVIE_BASE_URL + SortByQuery).buildUpon()
                 .appendQueryParameter(MOVIE_API_QUERY, MOVIE_API_KEY)
-                .appendQueryParameter(MOVIE_LANGUAGE_QUERY, MOVIE_DEFAULT_LANGUAGE)
-                .appendQueryParameter(MOVIE_SORT_BY_QUERY, SortByQuery)
-                .appendQueryParameter(MOVIE_INCLUDE_ADULT_QUERY, MOVIE_DEFAULT_ADULT)
-                .appendQueryParameter(MOVIE_INCLUDE_VIDEO_QUERY, MOVIE_DEFAULT_VIDEO)
+                // .appendQueryParameter(MOVIE_SORT_BY_QUERY, SortByQuery)
+                // .appendQueryParameter(MOVIE_LANGUAGE_QUERY, MOVIE_DEFAULT_LANGUAGE)
+                // .appendQueryParameter(MOVIE_INCLUDE_ADULT_QUERY, MOVIE_DEFAULT_ADULT)
+                // .appendQueryParameter(MOVIE_INCLUDE_VIDEO_QUERY, MOVIE_DEFAULT_VIDEO)
                 .appendQueryParameter(MOVIE_PAGE_QUERY, Integer.toString(PageNumber))
                 .build();
 
@@ -251,26 +255,14 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
 
-        if (id == R.id.menuSortAverageAsc) {
-            mCurrentSortQuery = MOVIE_SORT_BY_VOTE_AVERAGE_ASC;
+        if (id == R.id.menuTopRated) {
+            mCurrentSortQuery = MOVIE_TOP_RATED;
             LoadMovieData(LIST_COMMAND.INITIALIZE);
             return true;
         }
 
-        if (id == R.id.menuSortAverageDesc) {
-            mCurrentSortQuery = MOVIE_SORT_BY_VOTE_AVERAGE_DESC;
-            LoadMovieData(LIST_COMMAND.INITIALIZE);
-            return true;
-        }
-
-        if (id == R.id.menuSortPopularityAsc) {
-            mCurrentSortQuery = MOVIE_SORT_BY_POPULARITY_ASC;
-            LoadMovieData(LIST_COMMAND.INITIALIZE);
-            return true;
-        }
-
-        if (id == R.id.menuSortPopularityDesc) {
-            mCurrentSortQuery = MOVIE_SORT_BY_POPULARITY_DESC;
+        if (id == R.id.menuPopularity) {
+            mCurrentSortQuery = MOVIE_POPULAR;
             LoadMovieData(LIST_COMMAND.INITIALIZE);
             return true;
         }
