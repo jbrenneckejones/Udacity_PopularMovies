@@ -2,10 +2,12 @@ package com.example.android.popularmovies;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
@@ -55,10 +57,14 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
 
         mLoadingIndicator = (ProgressBar) findViewById(R.id.pb_loading_indicator);
 
-        LinearLayoutManager layoutManager
-                = new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false);
-
-        mRecyclerView.setLayoutManager(layoutManager);
+        if(getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT)
+        {
+            mRecyclerView.setLayoutManager(new GridLayoutManager(this, 2));
+        }
+        else
+        {
+            mRecyclerView.setLayoutManager(new GridLayoutManager(this, 4));
+        }
 
         mRecyclerView.setHasFixedSize(true);
         mMovieAdapter = new MovieAdapter(this);
@@ -70,7 +76,7 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
             @Override
             public void onScrolled(RecyclerView recyclerView, int dx, int dy)
             {
-                LinearLayoutManager layoutmanager = (LinearLayoutManager) recyclerView.getLayoutManager();
+                GridLayoutManager layoutmanager = (GridLayoutManager) recyclerView.getLayoutManager();
 
                 if(layoutmanager != null)
                 {
