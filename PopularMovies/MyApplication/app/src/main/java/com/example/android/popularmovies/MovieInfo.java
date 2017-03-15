@@ -1,5 +1,6 @@
 package com.example.android.popularmovies;
 
+import android.content.ContentValues;
 import android.os.Parcel;
 import android.os.Parcelable;
 
@@ -10,10 +11,11 @@ import android.os.Parcelable;
 public class MovieInfo implements Parcelable
 {
     public int mMoviePage;
+    public int mMovieID;
     public String mMoviePosterPath;
     public String mMovieOverview;
 
-    public  String mMovieReleaseDate;
+    public String mMovieReleaseDate;
 
     public String mMovieTitle;
     public float mMoviePopularity;
@@ -21,13 +23,14 @@ public class MovieInfo implements Parcelable
     public int mMovieVotes;
     public float mMovieAverage;
 
-    public MovieInfo()
-    {
+    public MovieInfo() {
 
     }
 
-    protected MovieInfo(Parcel in) {
+    protected MovieInfo(Parcel in)
+    {
         mMoviePage = in.readInt();
+        mMovieID = in.readInt();
         mMoviePosterPath = in.readString();
         mMovieOverview = in.readString();
         mMovieReleaseDate = in.readString();
@@ -49,10 +52,14 @@ public class MovieInfo implements Parcelable
         }
     };
 
-    public String GetMovieInfo()
+    public String GetMovieBasicInfo()
     {
-        return "Title: " + mMovieTitle + "\n\n" +
-                "Release Date: " + mMovieReleaseDate + "\n\n" +
+        return "Title: " + mMovieTitle + "\n\n";
+    }
+
+    public String GetMovieDetailInfo()
+    {
+        return  "Release Date: " + mMovieReleaseDate + "\n\n" +
                 "Overview: " + mMovieOverview + "\n\n" +
                 "Popularity: " + mMoviePopularity + "\n\n" +
                 "Votes: " + mMovieVotes + "\n\n" +
@@ -68,7 +75,8 @@ public class MovieInfo implements Parcelable
     }
 
     @Override
-    public int describeContents() {
+    public int describeContents()
+    {
         return 0;
     }
 
@@ -76,6 +84,7 @@ public class MovieInfo implements Parcelable
     public void writeToParcel(Parcel dest, int flags)
     {
         dest.writeInt(mMoviePage);
+        dest.writeInt(mMovieID);
         dest.writeString(mMoviePosterPath);
         dest.writeString(mMovieOverview);
         dest.writeString(mMovieReleaseDate);
@@ -83,5 +92,21 @@ public class MovieInfo implements Parcelable
         dest.writeFloat(mMoviePopularity);
         dest.writeInt(mMovieVotes);
         dest.writeFloat(mMovieAverage);
+    }
+
+    public ContentValues ToContentValue()
+    {
+        ContentValues MovieValues = new ContentValues();
+        MovieValues.put(MovieContract.MovieEntry.COLUMN_AVERAGE, mMovieAverage);
+        MovieValues.put(MovieContract.MovieEntry.COLUMN_ID, mMovieID);
+        MovieValues.put(MovieContract.MovieEntry.COLUMN_OVERVIEW, mMovieOverview);
+        MovieValues.put(MovieContract.MovieEntry.COLUMN_PAGE, mMoviePage);
+        MovieValues.put(MovieContract.MovieEntry.COLUMN_POPULARITY, mMoviePopularity);
+        MovieValues.put(MovieContract.MovieEntry.COLUMN_POSTER, mMoviePosterPath);
+        MovieValues.put(MovieContract.MovieEntry.COLUMN_RELEASE_DATE, mMovieReleaseDate);
+        MovieValues.put(MovieContract.MovieEntry.COLUMN_TITLE, mMovieTitle);
+        MovieValues.put(MovieContract.MovieEntry.COLUMN_VOTES, mMovieVotes);
+
+        return MovieValues;
     }
 }

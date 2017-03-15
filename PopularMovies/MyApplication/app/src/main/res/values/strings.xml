@@ -1,3 +1,11 @@
 <resources>
     <string name="app_name">PopularMovies</string>
+    <string name="movie_play_text">Play Trailer</string>
+    <string name="movie_share_text">Share Trailer</string>
+    <string name="tv_movie_picture_content">Image</string>
+    <string name="lorem_ipsum">
+        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quisque non magna sed massa pulvinar tincidunt consectetur vel orci. Sed scelerisque turpis eleifend enim aliquam pulvinar. Etiam interdum commodo arcu, sed tincidunt metus consequat ut. Praesent mollis convallis arcu, vehicula maximus lorem tempor at. Ut nec vestibulum libero, vehicula tempor ligula. Donec fermentum tempor placerat. Nam mattis feugiat commodo. Duis sit amet tortor sapien. Suspendisse tincidunt dictum eros vitae congue. Fusce vitae lectus bibendum, pretium tellus id, gravida sapien. Suspendisse enim dolor, congue eu porta id, iaculis a arcu. Ut interdum sem varius risus consequat, sit amet consequat dolor condimentum.
+
+        Aliquam cursus suscipit felis, sed aliquet lorem pulvinar sed. Pellentesque fringilla sollicitudin nisl vulputate lacinia. Fusce facilisis tincidunt condimentum. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Sed consectetur bibendum dui, eget ornare ex bibendum sed. Ut semper turpis a velit sollicitudin, ultricies interdum velit varius. Praesent semper molestie ligula at fringilla. Fusce dapibus justo dui, faucibus pretium felis faucibus id. Quisque tempus est a leo sollicitudin ultricies. Curabitur id molestie eros, quis rhoncus mauris. Pellentesque vel hendrerit turpis. Sed in enim a ex laoreet sagittis.
+    </string>
 </resources>

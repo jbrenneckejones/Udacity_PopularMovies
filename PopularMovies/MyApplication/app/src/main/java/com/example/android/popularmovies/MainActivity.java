@@ -3,6 +3,7 @@ package com.example.android.popularmovies;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
@@ -103,7 +104,19 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
             }
         });
 
+
         LoadMovieData(LIST_COMMAND.INITIALIZE);
+    }
+
+    @Override
+    protected void onResume()
+    {
+        super.onResume();
+
+        if(mCurrentSortQuery == MOVIE_FAVORITES)
+        {
+            LoadFavoriteData();
+        }
     }
 
     private void LoadMovieData(LIST_COMMAND Command)
@@ -111,33 +124,38 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
         new FetchMoviesTask().execute(String.valueOf(mCurrentPage), mCurrentSortQuery, Command.toString());
     }
 
-    private static String MOVIE_BASE_URL = "https://api.themoviedb.org/3/movie";
+    private void LoadFavoriteData()
+    {
+        new FetchFavoritesTask().execute(mCurrentPage);
+    }
 
+    public static String MOVIE_BASE_URL = "https://api.themoviedb.org/3/movie";
 
-    private static String MOVIE_API_QUERY = "api_key";
+    public static String MOVIE_API_QUERY = "api_key";
     // TODO: Change this to your api key
-    private static String MOVIE_API_KEY = "API_KEY";
+    public static String MOVIE_API_KEY = "API_KEY";
 
-    private static String MOVIE_LANGUAGE_QUERY = "language";
-    private static String MOVIE_DEFAULT_LANGUAGE = "en-US";
+    public static String MOVIE_LANGUAGE_QUERY = "language";
+    public static String MOVIE_DEFAULT_LANGUAGE = "en-US";
 
-    private static String MOVIE_SORT_BY_QUERY = "sort_by";
+    public static String MOVIE_SORT_BY_QUERY = "sort_by";
 
-    private static String MOVIE_TOP_RATED = "/top_rated";
-    private static String MOVIE_POPULAR = "/popular";
+    public static String MOVIE_TOP_RATED = "/top_rated";
+    public static String MOVIE_POPULAR = "/popular";
+    public static String MOVIE_FAVORITES = "favorites";
 
-    private static String MOVIE_SORT_BY_POPULARITY_DESC = "popularity.desc";
-    private static String MOVIE_SORT_BY_POPULARITY_ASC = "popularity.asc";
-    private static String MOVIE_SORT_BY_VOTE_AVERAGE_DESC = "vote_average.desc";
-    private static String MOVIE_SORT_BY_VOTE_AVERAGE_ASC = "vote_average.asc";
+    public static String MOVIE_SORT_BY_POPULARITY_DESC = "popularity.desc";
+    public static String MOVIE_SORT_BY_POPULARITY_ASC = "popularity.asc";
+    public static String MOVIE_SORT_BY_VOTE_AVERAGE_DESC = "vote_average.desc";
+    public static String MOVIE_SORT_BY_VOTE_AVERAGE_ASC = "vote_average.asc";
 
-    private static String MOVIE_INCLUDE_ADULT_QUERY = "include_adult";
-    private static String MOVIE_DEFAULT_ADULT = "false";
+    public static String MOVIE_INCLUDE_ADULT_QUERY = "include_adult";
+    public static String MOVIE_DEFAULT_ADULT = "false";
 
-    private static String MOVIE_INCLUDE_VIDEO_QUERY = "include_video";
-    private static String MOVIE_DEFAULT_VIDEO = "true";
+    public static String MOVIE_INCLUDE_VIDEO_QUERY = "include_video";
+    public static String MOVIE_DEFAULT_VIDEO = "true";
 
-    private static String MOVIE_PAGE_QUERY = "page";
+    public static String MOVIE_PAGE_QUERY = "page";
 
     public static URL buildUrl(int PageNumber, String SortByQuery) {
         Uri builtUri = Uri.parse(MOVIE_BASE_URL + SortByQuery).buildUpon()
@@ -183,6 +201,8 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
 
         final String MOVIE_LIST = "results";
 
+        final String MOVIE_ID = "id";
+
         final String MOVIE_POSTER_PATH = "poster_path";
 
         final String MOVIE_SYNOPSES = "overview";
@@ -224,6 +244,7 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
             JSONObject movieObject = movieArray.getJSONObject(i);
 
             Movie.mMoviePage = PageNumber;
+            Movie.mMovieID = movieObject.getInt(MOVIE_ID);
 
             Movie.mMoviePosterPath = movieObject.getString(MOVIE_POSTER_PATH);
             Movie.mMovieOverview = movieObject.getString(MOVIE_SYNOPSES);
@@ -242,7 +263,8 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
     }
 
     @Override
-    public void OnClick(MovieInfo ClickedMovieInfo) {
+    public void OnClick(MovieInfo ClickedMovieInfo)
+    {
         Context context = this;
         Class destinationClass = MovieInfoActivity.class;
         Intent intentToStartMovieInfoActivity = new Intent(context, destinationClass);
@@ -261,15 +283,28 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
 
-        if (id == R.id.menuTopRated) {
+        if (id == R.id.menuTopRated)
+        {
+            mCurrentPage = 1;
             mCurrentSortQuery = MOVIE_TOP_RATED;
             LoadMovieData(LIST_COMMAND.INITIALIZE);
             return true;
         }
 
-        if (id == R.id.menuPopularity) {
+        if (id == R.id.menuPopularity)
+        {
+            mCurrentPage = 1;
             mCurrentSortQuery = MOVIE_POPULAR;
             LoadMovieData(LIST_COMMAND.INITIALIZE);
+            return true;
+        }
+
+        if(id == R.id.menuFavorites)
+        {
+            mCurrentPage = 1;
+            mCurrentSortQuery = MOVIE_FAVORITES;
+            LoadFavoriteData();
+
             return true;
         }
 
@@ -295,6 +330,64 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
         }
     }
 
+    public class FetchFavoritesTask extends AsyncTask<Integer, Void, MovieInfo[]>
+    {
+        @Override
+        protected void onPreExecute()
+        {
+            super.onPreExecute();
+            mRecyclerView.setVisibility(View.INVISIBLE);
+            mLoadingIndicator.setVisibility(View.VISIBLE);
+        }
+
+        @Override
+        protected MovieInfo[] doInBackground(Integer... params)
+        {
+            Cursor cursor = getContentResolver()
+                    .query(MovieContract.MovieEntry.CONTENT_URI,
+                            MovieDBHelper.MOVIE_DB_PROJECTIONS, null, null, null);
+
+            MovieInfo[] Movies = new MovieInfo[0];
+
+            if(cursor != null)
+            {
+                cursor.moveToFirst();
+                Movies = new MovieInfo[cursor.getCount()];
+                for(int Index = 0; Index < cursor.getCount(); ++Index)
+                {
+                    MovieInfo Movie = new MovieInfo();
+
+                    Movie.mMovieTitle = cursor.getString(MovieDBHelper.INDEX_MOVIE_TITLE);
+                    Movie.mMovieID = cursor.getInt(MovieDBHelper.INDEX_MOVIE_ID);
+                    Movie.mMovieAverage = cursor.getFloat(MovieDBHelper.INDEX_MOVIE_AVERAGE);
+                    Movie.mMovieOverview = cursor.getString(MovieDBHelper.INDEX_MOVIE_OVERVIEW);
+                    Movie.mMoviePage = cursor.getInt(MovieDBHelper.INDEX_MOVIE_PAGE);
+                    Movie.mMoviePopularity = cursor.getFloat(MovieDBHelper.INDEX_MOVIE_POPULARITY);
+                    Movie.mMoviePosterPath = cursor.getString(MovieDBHelper.INDEX_MOVIE_POSTER);
+                    Movie.mMovieReleaseDate = cursor.getString(MovieDBHelper.INDEX_MOVIE_RELEASE_DATE);
+                    Movie.mMovieVotes = cursor.getInt(MovieDBHelper.INDEX_MOVIE_VOTES);
+
+                    Movies[Index] = Movie;
+                    cursor.moveToNext();
+                }
+            }
+
+            return Movies;
+        }
+
+        @Override
+        protected void onPostExecute(MovieInfo[] movieData)
+        {
+            mLoadingIndicator.setVisibility(View.INVISIBLE);
+            if (movieData != null)
+            {
+                mRecyclerView.setVisibility(View.VISIBLE);
+
+                mMovieAdapter.SetMovieData(movieData);
+            }
+        }
+    }
+
     public class FetchMoviesTask extends AsyncTask<String, Void, MovieInfo[]> {
 
         private LIST_COMMAND mCommand;
@@ -309,7 +402,8 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
         @Override
         protected MovieInfo[] doInBackground(String... params) {
 
-            if (params.length == 0) {
+            if (params.length == 0)
+            {
                 return null;
             }
 
@@ -319,7 +413,8 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
             mCommand = Command;
             URL movieRequestUrl = buildUrl(pageNumber, SortByQuery);
 
-            try {
+            try
+            {
                 String jsonMovieResponse = getResponseFromHttpUrl(movieRequestUrl);
 
                 Log.d("Movie Response: ", jsonMovieResponse);
@@ -328,16 +423,19 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
 
                 return MovieInfoData;
 
-            } catch (Exception e) {
+            } catch (Exception e)
+            {
                 e.printStackTrace();
                 return null;
             }
         }
 
         @Override
-        protected void onPostExecute(MovieInfo[] movieData) {
+        protected void onPostExecute(MovieInfo[] movieData)
+        {
             mLoadingIndicator.setVisibility(View.INVISIBLE);
-            if (movieData != null) {
+            if (movieData != null)
+            {
                 mRecyclerView.setVisibility(View.VISIBLE);
 
                 switch(mCommand)
