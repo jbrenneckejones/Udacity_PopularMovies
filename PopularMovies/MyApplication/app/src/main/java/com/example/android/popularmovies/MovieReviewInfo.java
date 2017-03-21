@@ -34,6 +34,11 @@ public class MovieReviewInfo implements Parcelable
         }
     };
 
+    public String GetReviewNeat()
+    {
+        return mAuthor + " says " + mContent;
+    }
+
     public String GetReviewInfo()
     {
         return "Author: " + mAuthor + "\n\n" +

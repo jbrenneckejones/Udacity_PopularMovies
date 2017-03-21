@@ -2,14 +2,13 @@ package com.example.android.popularmovies;
 
 import android.content.Context;
 import android.content.Intent;
-import android.content.res.Configuration;
+import android.content.SharedPreferences;
 import android.database.Cursor;
-import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Parcelable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.GridLayoutManager;
-import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.Menu;
@@ -17,18 +16,12 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ProgressBar;
-import android.widget.Toast;
 
 import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Scanner;
+import java.util.ArrayList;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements MovieAdapter.MovieAdapterOnClickHandler {
 
@@ -36,11 +29,21 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
     private MovieAdapter mMovieAdapter;
     private ProgressBar mLoadingIndicator;
 
-    private static int mMaxPages = 0;
-    private int mCurrentPage = 1;
-    private String mCurrentSortQuery = MOVIE_TOP_RATED;
+    public static JSONArray sCurrentJsonResponse;
+    public static int sCurrentJsonTopIndex;
+    public static int sCurrentJsonBottomIndex;
 
+    private final String KEY_RECYCLER_STATE = "recycler_state";
+    private final String KEY_ADAPTER_STATE = "adapter_state";
+    private static Bundle mBundleRecyclerViewState;
+
+    private int mCurrentPage = 1;
+    private String mCurrentSortQuery = MovieHelperUtility.MOVIE_TOP_RATED;
+
+    public static int sMaxPages = 0;
     public static final String PARCELABLE_NAME = "MovieInfoData";
+
+    public static final String SHARED_PREF_SORTQUERY = "sort-query";
 
     public enum LIST_COMMAND
     {
@@ -54,58 +57,171 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        SharedPreferences preferences = getSharedPreferences(SHARED_PREF_SORTQUERY, MODE_PRIVATE);
+        mCurrentSortQuery = preferences.getString(SHARED_PREF_SORTQUERY, MovieHelperUtility.MOVIE_TOP_RATED);
+
         mRecyclerView = (RecyclerView) findViewById(R.id.recyclerview_movies);
 
         mLoadingIndicator = (ProgressBar) findViewById(R.id.pb_loading_indicator);
 
-        if(getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT)
+        if(mBundleRecyclerViewState != null)
         {
-            mRecyclerView.setLayoutManager(new GridLayoutManager(this, 2));
+            SetupRecycler();
+            GetBundleState();
         }
         else
         {
-            mRecyclerView.setLayoutManager(new GridLayoutManager(this, 4));
+            SetupRecycler();
+            LoadData();
         }
+    }
+
+    private void SetupRecycler()
+    {
+        GridLayoutManager GridLayout = new GridLayoutManager(this, MovieHelperUtility.GetNumberOfColumns(this));
+
+        mRecyclerView.setLayoutManager(GridLayout);
 
         mRecyclerView.setHasFixedSize(true);
         mMovieAdapter = new MovieAdapter(this);
 
         mRecyclerView.setAdapter(mMovieAdapter);
 
-        mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener()
+        RecyclerView.OnScrollListener ScrollListener = new RecyclerView.OnScrollListener()
         {
-            @Override
-            public void onScrolled(RecyclerView recyclerView, int dx, int dy)
+            private boolean Loading = true;
+            int FirstVisibleItems, VisibleItemCount, TotalItemsCount, PreviousTotal, VisibleThreshold;
+
+            private void ListCheck(RecyclerView recyclerView)
             {
                 GridLayoutManager layoutmanager = (GridLayoutManager) recyclerView.getLayoutManager();
 
-                if(layoutmanager != null)
-                {
-                    if(layoutmanager.findFirstCompletelyVisibleItemPosition() == 0)
-                    {
-                        if(mCurrentPage == 1 || mMovieAdapter.GetElement(0).mMoviePage == 1)
-                        {
-                            return;
-                        }
+                VisibleItemCount = mRecyclerView.getChildCount();
+                TotalItemsCount = layoutmanager.getItemCount();
+                FirstVisibleItems = layoutmanager.findFirstVisibleItemPosition();
+                VisibleThreshold = MovieAdapter.MOVIE_VIEW_MAX;
 
-                        ChangePageNumber(-1);
-                        LoadMovieData(LIST_COMMAND.ADD_BEFORE);
-                        mRecyclerView.scrollToPosition(80);
-                    }
-                    else if(layoutmanager.findLastCompletelyVisibleItemPosition() == mMovieAdapter.getItemCount() - 1)
+                /*
+                if(FirstVisibleItems <= 3)
+                {
+                    if(mCurrentPage == 1 || mMovieAdapter.GetElement(0).mMoviePage == 1)
                     {
-                        ChangePageNumber(1);
-                        LoadMovieData(LIST_COMMAND.ADD_AFTER);
-                        mRecyclerView.scrollToPosition(20);
+                        return;
+                    }
+
+                    if(ChangePageNumber(-1))
+                    {
+                        LoadMovieData(LIST_COMMAND.ADD_BEFORE);
+                    }
+                }
+                */
+
+                if (Loading)
+                {
+                    if (TotalItemsCount > PreviousTotal)
+                    {
+                        Loading = false;
+                        PreviousTotal = TotalItemsCount;
+
+                        // MovieAdapter Adapter = (MovieAdapter)recyclerView.getAdapter();
+                        // Adapter.RemoveOldData(FirstVisibleItems + 5, 10);
                     }
                 }
 
-                super.onScrolled(recyclerView, dx, dy);
+                if (!Loading && (TotalItemsCount - VisibleItemCount)
+                        <= (FirstVisibleItems + VisibleThreshold))
+                {
+                    // Do something
+                    if(ChangePageNumber(1))
+                    {
+                        LoadMovieData(LIST_COMMAND.ADD_AFTER);
+                    }
+                    Loading = true;
+                }
             }
-        });
 
+            private void EndCheck(RecyclerView recyclerView)
+            {
+                /*
+                if (!recyclerView.canScrollVertically(-1))
+                {
 
-        LoadMovieData(LIST_COMMAND.INITIALIZE);
+                }
+                else if (!recyclerView.canScrollVertically(1))
+                {
+                    if(ChangePageNumber(1))
+                    {
+                        LoadMovieData(LIST_COMMAND.ADD_AFTER);
+                    }
+                }
+                */
+            }
+
+            @Override
+            public void onScrolled(RecyclerView recyclerView, int dx, int dy)
+            {
+                ListCheck(recyclerView);
+                EndCheck(recyclerView);
+            }
+        };
+
+        mRecyclerView.addOnScrollListener(ScrollListener);
+    }
+
+    private void LoadData()
+    {
+        if(mCurrentSortQuery.equals(MovieHelperUtility.MOVIE_FAVORITES))
+        {
+            mCurrentPage = 1;
+            LoadFavoriteData();
+        }
+        else
+        {
+            LoadMovieData(LIST_COMMAND.INITIALIZE);
+        }
+    }
+
+    private void SetBundleState()
+    {
+        mBundleRecyclerViewState = new Bundle();
+        Parcelable ListState = mRecyclerView.getLayoutManager().onSaveInstanceState();
+        mBundleRecyclerViewState.putParcelable(KEY_RECYCLER_STATE, ListState);
+
+        MovieAdapter Adapter = (MovieAdapter)mRecyclerView.getAdapter();
+
+        MovieInfo[] Movies = new MovieInfo[Adapter.GetMovies().size()];
+        Movies = Adapter.GetMovies().toArray(Movies);
+        mBundleRecyclerViewState.putParcelableArray(KEY_ADAPTER_STATE, Movies);
+    }
+
+    private void GetBundleState()
+    {
+        if(mBundleRecyclerViewState != null)
+        {
+            Parcelable ListState = mBundleRecyclerViewState.getParcelable(KEY_RECYCLER_STATE);
+            mRecyclerView.getLayoutManager().onRestoreInstanceState(ListState);
+
+            MovieAdapter Adapter = (MovieAdapter)mRecyclerView.getAdapter();
+
+            MovieInfo[] Movies = (MovieInfo[])mBundleRecyclerViewState.getParcelableArray(KEY_ADAPTER_STATE);
+
+            if(Movies == null)
+            {
+                LoadData();
+            }
+            else
+            {
+                Adapter.SetMovieData(Movies);
+            }
+
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        SetBundleState();
     }
 
     @Override
@@ -113,153 +229,30 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
     {
         super.onResume();
 
-        if(mCurrentSortQuery == MOVIE_FAVORITES)
-        {
-            LoadFavoriteData();
-        }
+        GetBundleState();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+
+        SharedPreferences preferences = getSharedPreferences(SHARED_PREF_SORTQUERY, MODE_APPEND);
+        preferences.edit().putString(SHARED_PREF_SORTQUERY, mCurrentSortQuery).apply();
     }
 
     private void LoadMovieData(LIST_COMMAND Command)
     {
+        if(mCurrentSortQuery.equals(MovieHelperUtility.MOVIE_FAVORITES))
+        {
+            return;
+        }
+
         new FetchMoviesTask().execute(String.valueOf(mCurrentPage), mCurrentSortQuery, Command.toString());
     }
 
     private void LoadFavoriteData()
     {
-        new FetchFavoritesTask().execute(mCurrentPage);
-    }
-
-    public static String MOVIE_BASE_URL = "https://api.themoviedb.org/3/movie";
-
-    public static String MOVIE_API_QUERY = "api_key";
-    // TODO: Change this to your api key
-    public static String MOVIE_API_KEY = "API_KEY";
-
-    public static String MOVIE_LANGUAGE_QUERY = "language";
-    public static String MOVIE_DEFAULT_LANGUAGE = "en-US";
-
-    public static String MOVIE_SORT_BY_QUERY = "sort_by";
-
-    public static String MOVIE_TOP_RATED = "/top_rated";
-    public static String MOVIE_POPULAR = "/popular";
-    public static String MOVIE_FAVORITES = "favorites";
-
-    public static String MOVIE_SORT_BY_POPULARITY_DESC = "popularity.desc";
-    public static String MOVIE_SORT_BY_POPULARITY_ASC = "popularity.asc";
-    public static String MOVIE_SORT_BY_VOTE_AVERAGE_DESC = "vote_average.desc";
-    public static String MOVIE_SORT_BY_VOTE_AVERAGE_ASC = "vote_average.asc";
-
-    public static String MOVIE_INCLUDE_ADULT_QUERY = "include_adult";
-    public static String MOVIE_DEFAULT_ADULT = "false";
-
-    public static String MOVIE_INCLUDE_VIDEO_QUERY = "include_video";
-    public static String MOVIE_DEFAULT_VIDEO = "true";
-
-    public static String MOVIE_PAGE_QUERY = "page";
-
-    public static URL buildUrl(int PageNumber, String SortByQuery) {
-        Uri builtUri = Uri.parse(MOVIE_BASE_URL + SortByQuery).buildUpon()
-                .appendQueryParameter(MOVIE_API_QUERY, MOVIE_API_KEY)
-                // .appendQueryParameter(MOVIE_SORT_BY_QUERY, SortByQuery)
-                // .appendQueryParameter(MOVIE_LANGUAGE_QUERY, MOVIE_DEFAULT_LANGUAGE)
-                // .appendQueryParameter(MOVIE_INCLUDE_ADULT_QUERY, MOVIE_DEFAULT_ADULT)
-                // .appendQueryParameter(MOVIE_INCLUDE_VIDEO_QUERY, MOVIE_DEFAULT_VIDEO)
-                .appendQueryParameter(MOVIE_PAGE_QUERY, Integer.toString(PageNumber))
-                .build();
-
-        URL url = null;
-        try {
-            url = new URL(builtUri.toString());
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
-        }
-
-        return url;
-    }
-
-    public static String getResponseFromHttpUrl(URL url) throws IOException {
-        HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
-        try {
-            InputStream in = urlConnection.getInputStream();
-
-            Scanner scanner = new Scanner(in);
-            scanner.useDelimiter("\\A");
-
-            boolean hasInput = scanner.hasNext();
-            if (hasInput) {
-                return scanner.next();
-            } else {
-                return null;
-            }
-        } finally {
-            urlConnection.disconnect();
-        }
-    }
-
-    public static MovieInfo[] getSimpleMovieStringsFromJson(Context context, String movieJsonStr)
-            throws JSONException {
-
-        final String MOVIE_LIST = "results";
-
-        final String MOVIE_ID = "id";
-
-        final String MOVIE_POSTER_PATH = "poster_path";
-
-        final String MOVIE_SYNOPSES = "overview";
-        final String MOVIE_RELEASE_DATE = "release_date";
-
-        final String MOVIE_TITLE = "title";
-        final String MOVIE_POPULARITY = "popularity";
-
-        final String MOVIE_VOTES = "vote_count";
-        final String MOVIE_VOTE_AVERAGE = "vote_average";
-
-        final String ERROR_MESSAGE_CODE = "errors";
-
-        MovieInfo[] parsedMovieData = null;
-
-        JSONObject movieJson = new JSONObject(movieJsonStr);
-
-        MainActivity.mMaxPages = movieJson.getInt("total_pages");
-
-        int PageNumber = movieJson.getInt("page");
-
-        /* Is there an error? */
-        if (movieJson.has(ERROR_MESSAGE_CODE)) {
-            String errorMessage = movieJson.getString(ERROR_MESSAGE_CODE);
-
-            Toast toast = Toast.makeText(context, errorMessage, Toast.LENGTH_LONG);
-            toast.show();
-
-            return null;
-        }
-
-        JSONArray movieArray = movieJson.getJSONArray(MOVIE_LIST);
-
-        parsedMovieData = new MovieInfo[movieArray.length()];
-
-        for (int i = 0; i < movieArray.length(); i++) {
-            MovieInfo Movie = new MovieInfo();
-
-            JSONObject movieObject = movieArray.getJSONObject(i);
-
-            Movie.mMoviePage = PageNumber;
-            Movie.mMovieID = movieObject.getInt(MOVIE_ID);
-
-            Movie.mMoviePosterPath = movieObject.getString(MOVIE_POSTER_PATH);
-            Movie.mMovieOverview = movieObject.getString(MOVIE_SYNOPSES);
-            Movie.mMovieReleaseDate = movieObject.getString(MOVIE_RELEASE_DATE);
-
-            Movie.mMovieTitle = movieObject.getString(MOVIE_TITLE);
-            Movie.mMoviePopularity = (float) movieObject.getDouble(MOVIE_POPULARITY);
-
-            Movie.mMovieVotes = movieObject.getInt(MOVIE_VOTES);
-            Movie.mMovieAverage = (float) movieObject.getDouble(MOVIE_VOTE_AVERAGE);
-
-            parsedMovieData[i] = Movie;
-        }
-
-        return parsedMovieData;
+        new FetchFavoritesTask().execute();
     }
 
     @Override
@@ -286,24 +279,36 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
         if (id == R.id.menuTopRated)
         {
             mCurrentPage = 1;
-            mCurrentSortQuery = MOVIE_TOP_RATED;
-            LoadMovieData(LIST_COMMAND.INITIALIZE);
+            mCurrentSortQuery = MovieHelperUtility.MOVIE_TOP_RATED;
+
+            SharedPreferences preferences = getSharedPreferences(SHARED_PREF_SORTQUERY, MODE_APPEND);
+            preferences.edit().putString(SHARED_PREF_SORTQUERY, mCurrentSortQuery).apply();
+
+            LoadData();
             return true;
         }
 
         if (id == R.id.menuPopularity)
         {
             mCurrentPage = 1;
-            mCurrentSortQuery = MOVIE_POPULAR;
-            LoadMovieData(LIST_COMMAND.INITIALIZE);
+            mCurrentSortQuery = MovieHelperUtility.MOVIE_POPULAR;
+
+            SharedPreferences preferences = getSharedPreferences(SHARED_PREF_SORTQUERY, MODE_APPEND);
+            preferences.edit().putString(SHARED_PREF_SORTQUERY, mCurrentSortQuery).apply();
+
+            LoadData();
             return true;
         }
 
         if(id == R.id.menuFavorites)
         {
             mCurrentPage = 1;
-            mCurrentSortQuery = MOVIE_FAVORITES;
-            LoadFavoriteData();
+            mCurrentSortQuery = MovieHelperUtility.MOVIE_FAVORITES;
+
+            SharedPreferences preferences = getSharedPreferences(SHARED_PREF_SORTQUERY, MODE_APPEND);
+            preferences.edit().putString(SHARED_PREF_SORTQUERY, mCurrentSortQuery).apply();
+
+            LoadData();
 
             return true;
         }
@@ -311,26 +316,31 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
         return super.onOptionsItemSelected(item);
     }
 
-    public void ChangePageNumber(int Amount)
+    public boolean ChangePageNumber(int Amount)
     {
         if(Amount > 0)
         {
-            if(mCurrentPage < mMaxPages)
+            if(mCurrentPage < sMaxPages)
             {
                 mCurrentPage += Amount;
+                return true;
             }
         }
 
         if(Amount < 0)
         {
-            if(mCurrentPage > 1)
+            if (mCurrentPage > 1)
             {
                 mCurrentPage += Amount;
+
+                return true;
             }
         }
+
+        return false;
     }
 
-    public class FetchFavoritesTask extends AsyncTask<Integer, Void, MovieInfo[]>
+    public class FetchFavoritesTask extends AsyncTask<Void, Void, MovieInfo[]>
     {
         @Override
         protected void onPreExecute()
@@ -341,7 +351,7 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
         }
 
         @Override
-        protected MovieInfo[] doInBackground(Integer... params)
+        protected MovieInfo[] doInBackground(Void... params)
         {
             Cursor cursor = getContentResolver()
                     .query(MovieContract.MovieEntry.CONTENT_URI,
@@ -411,15 +421,15 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
             String SortByQuery = params[1];
             LIST_COMMAND Command = Enum.valueOf(LIST_COMMAND.class, params[2]);
             mCommand = Command;
-            URL movieRequestUrl = buildUrl(pageNumber, SortByQuery);
+            URL movieRequestUrl = MovieHelperUtility.buildMoviePageUrl(pageNumber, SortByQuery);
 
             try
             {
-                String jsonMovieResponse = getResponseFromHttpUrl(movieRequestUrl);
+                String jsonMovieResponse = MovieHelperUtility.getResponseFromHttpUrl(movieRequestUrl);
 
                 Log.d("Movie Response: ", jsonMovieResponse);
 
-                MovieInfo[] MovieInfoData = getSimpleMovieStringsFromJson(MainActivity.this, jsonMovieResponse);
+                MovieInfo[] MovieInfoData = MovieHelperUtility.getSimpleMovieStringsFromJson(MainActivity.this, jsonMovieResponse);
 
                 return MovieInfoData;
 
@@ -454,4 +464,5 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
             }
         }
     }
+
 }

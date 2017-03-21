@@ -66,6 +66,13 @@ public class MovieInfo implements Parcelable
                 "Average: " + mMovieAverage;
     }
 
+    public String GetMovieIntrinsics()
+    {
+        return  "Popularity: " + mMoviePopularity + "\n\n" +
+                "Votes: " + mMovieVotes + "\n\n" +
+                "Average: " + mMovieAverage;
+    }
+
     public String ToString()
     {
         return "Page:" + mMoviePage + " - " + "Poster:" + mMoviePosterPath + " - " + "Overview:" + mMovieOverview +

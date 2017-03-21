@@ -18,13 +18,20 @@ import java.util.List;
  * Created by jbren on 2/22/2017.
  */
 
-public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieAdapterViewHolder> {
+public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieAdapterViewHolder>
+{
 
     private List<MovieInfo> mMovieData;
 
-    private int MaxCount = 40;
+    // public static int MOVIE_COUNT_MAX = 40;
+    public static int MOVIE_VIEW_MAX = 20;
 
     private final MovieAdapterOnClickHandler mClickHandler;
+
+    public List<MovieInfo> GetMovies()
+    {
+        return mMovieData;
+    }
 
     public interface MovieAdapterOnClickHandler {
         void OnClick(MovieInfo ClickedMovieInfo);
@@ -51,7 +58,6 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieAdapter
         }
     }
 
-
     @Override
     public MovieAdapterViewHolder onCreateViewHolder(ViewGroup NewViewGroup, int ViewType)
     {
@@ -77,6 +83,27 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieAdapter
         return mMovieData.size();
     }
 
+    public void RemoveOldData(int IndexStart, int Count)
+    {
+        for(int Index = Count; Index > 0; Index--)
+        {
+            int RemovalIndex = mMovieData.size() - IndexStart;
+
+            if(RemovalIndex >= mMovieData.size())
+            {
+                RemovalIndex = mMovieData.size() - 1;
+            }
+            else if(RemovalIndex < 0)
+            {
+                RemovalIndex = 0;
+            }
+
+            mMovieData.remove(RemovalIndex);
+        }
+
+        notifyDataSetChanged();
+    }
+
     public void AddMovieDataBefore(MovieInfo[] MovieData)
     {
         for(int i = MovieData.length - 1; i >= 0; --i)
@@ -85,7 +112,7 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieAdapter
         }
 
 
-        while(getItemCount() > MaxCount)
+        // while(getItemCount() > MOVIE_COUNT_MAX)
         {
             mMovieData.remove(getItemCount() - 1);
         }
@@ -95,17 +122,19 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieAdapter
 
     public void AddMovieDataAfter(MovieInfo[] MovieData)
     {
+        int Size = mMovieData.size();
         for(MovieInfo Movie : MovieData)
         {
             mMovieData.add(Movie);
         }
 
-        while(getItemCount() > MaxCount)
+        int Index = Size;
+        while(Size != mMovieData.size())
         {
-            mMovieData.remove(0);
+            // mMovieData.remove(0);
+            notifyItemChanged(Size - 1);
+            Size++;
         }
-
-        notifyDataSetChanged();
     }
 
     public void SetMovieData(MovieInfo[] MovieData)

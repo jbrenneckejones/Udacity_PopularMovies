@@ -8,4 +8,9 @@
 
         Aliquam cursus suscipit felis, sed aliquet lorem pulvinar sed. Pellentesque fringilla sollicitudin nisl vulputate lacinia. Fusce facilisis tincidunt condimentum. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Sed consectetur bibendum dui, eget ornare ex bibendum sed. Ut semper turpis a velit sollicitudin, ultricies interdum velit varius. Praesent semper molestie ligula at fringilla. Fusce dapibus justo dui, faucibus pretium felis faucibus id. Quisque tempus est a leo sollicitudin ultricies. Curabitur id molestie eros, quis rhoncus mauris. Pellentesque vel hendrerit turpis. Sed in enim a ex laoreet sagittis.
     </string>
+    <string name="title_activity_temp">Temp</string>
+    <string name="action_settings">Settings</string>
+    <string name="section_format">Hello World from section: %1$d</string>
+    <string name="title_activity_main2">Main2Activity</string>
+    <string name="title_activity_deleteme">DELETEME</string>
 </resources>
